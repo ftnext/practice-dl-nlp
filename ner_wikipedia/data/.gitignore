@@ -1,0 +1,5 @@
+# dataの下にja.wikipedia.conllを置く
+# wget -P data/ https://raw.githubusercontent.com/Hironsan/IOB2Corpus/master/ja.wikipedia.conll
+
+*
+!.gitignore
