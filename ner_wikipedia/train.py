@@ -21,13 +21,15 @@ if __name__ == "__main__":
     batch_size = 32
     epochs = 100
     model_path = f"models/{args.model_type}_model.h5"
-    num_words = 15000
+    # len(source_vocab.tokenizer.word_index) 13483 なので、絞ってID化しているわけではない
+    num_words = 15000  # 出現頻度上位(num_words-1)語がID化される（残りはout-of-vocabulary）
 
     model_class = BidirectionalModel
     if args.model_type == "unidirectional":
         model_class = UnidirectionalModel
 
-    x, y = load_dataset("./data/ja.wikipedia.conll")  # x: sentences, y: labels
+    # x: sentences, y: labels （長さは1000）
+    x, y = load_dataset("./data/ja.wikipedia.conll")
 
     x = preprocess_dataset(x)  # 文字列中の数字の正規化
     x_train, x_test, y_train, y_test = train_test_split(
@@ -35,8 +37,8 @@ if __name__ == "__main__":
     )
     source_vocab = Vocab(num_words=num_words, oov_token="<UNK>").fit(x_train)
     target_vocab = Vocab(lower=False).fit(y_train)
-    x_train = create_dataset(x_train, source_vocab)
-    y_train = create_dataset(y_train, target_vocab)
+    x_train = create_dataset(x_train, source_vocab)  # numpy.ndarray (800, ...)
+    y_train = create_dataset(y_train, target_vocab)  # numpy.ndarray (800, ...)
 
     model = model_class(num_words, target_vocab.size).build()
     model.compile(optimizer="adam", loss="sparse_categorical_crossentropy")

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
+from typing import Optional
 
+import numpy
 import tensorflow as tf
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
@@ -18,30 +20,29 @@ class Vocab:
             oov_token=oov_token,
             filters="",
             lower=lower,
-            split="\t",
         )
 
-    def fit(self, sequences):
-        texts = self._texts(sequences)
-        self.tokenizer.fit_on_texts(texts)
+    def fit(self, sequences: list[list[str]]) -> "Vocab":
+        self.tokenizer.fit_on_texts(sequences)
         return self
 
-    def encode(self, sequences):
-        texts = self._texts(sequences)
-        return self.tokenizer.texts_to_sequences(texts)
+    def encode(self, sequences: list[list[str]]) -> list[list[int]]:
+        return self.tokenizer.texts_to_sequences(sequences)
 
-    def decode(self, sequences):
+    def decode(self, sequences: list[list[int]]) -> list[str]:
         texts = self.tokenizer.sequences_to_texts(sequences)
         return [text.split(" ") for text in texts]
 
-    def _texts(self, sequences):
+    def _texts(self, sequences: list[list[str]]) -> list[str]:
+        # fit_on_texts, texts_to_sequences ともに list[list[str]] を受け取れるので
+        # このメソッドは不要。使わないなら、Tokenizerのsplit引数に"\t"を渡さなくてもよい
         return ["\t".join(words) for words in sequences]
 
-    def get_index(self, word):
+    def get_index(self, word: str) -> Optional[int]:
         return self.tokenizer.word_index.get(word)
 
     @property
-    def size(self):
+    def size(self) -> int:
         return len(self.tokenizer.word_index) + 1
 
     def save(self, file_path):
@@ -89,6 +90,8 @@ def preprocess_dataset(sequences: list[list[str]]) -> list[list[str]]:
     return [[normalize_number(w) for w in words] for words in sequences]
 
 
-def create_dataset(sequences, vocab):
+def create_dataset(
+    sequences: list[list[str]], vocab: Vocab
+) -> "numpy.ndarray":
     encoded_sequences = vocab.encode(sequences)
     return pad_sequences(encoded_sequences, padding="post")
