@@ -27,7 +27,7 @@ if __name__ == "__main__":
     if args.model_type == "unidirectional":
         model_class = UnidirectionalModel
 
-    x, y = load_dataset("./data/ja.wikipedia.conll")
+    x, y = load_dataset("./data/ja.wikipedia.conll")  # x: sentences, y: labels
 
     x = preprocess_dataset(x)
     x_train, x_test, y_train, y_test = train_test_split(
