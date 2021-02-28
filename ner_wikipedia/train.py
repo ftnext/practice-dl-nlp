@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     x, y = load_dataset("./data/ja.wikipedia.conll")  # x: sentences, y: labels
 
-    x = preprocess_dataset(x)
+    x = preprocess_dataset(x)  # 文字列中の数字の正規化
     x_train, x_test, y_train, y_test = train_test_split(
         x, y, test_size=0.2, random_state=42
     )

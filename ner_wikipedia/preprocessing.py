@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 import tensorflow as tf
@@ -58,7 +60,7 @@ class Vocab:
         return vocab
 
 
-def normalize_number(text, reduce=True):
+def normalize_number(text: str, reduce: bool = True) -> str:
     """
     >>> text = "2万0689・24ドル"
     >>> normalize_number(text)
@@ -73,7 +75,17 @@ def normalize_number(text, reduce=True):
     return normalized_text
 
 
-def preprocess_dataset(sequences):
+def preprocess_dataset(sequences: list[list[str]]) -> list[list[str]]:
+    """各文字列について、数字の並び部分を0に正規化する
+
+    >>> from utils import load_dataset
+    >>> sentences, _ = load_dataset("data/ja.wikipedia.conll")
+    >>> preprocessed = preprocess_dataset(sentences)
+    >>> sentences[0]  # doctest: +SKIP
+    ['1960', '年代', 'と', '1970', '年代', 'の', '間', 'に', ...]
+    >>> preprocessed[0]  # doctest: +SKIP
+    ['0', '年代', 'と', '0', '年代', 'の', '間', 'に', ...]
+    """
     return [[normalize_number(w) for w in words] for words in sequences]
 
 
