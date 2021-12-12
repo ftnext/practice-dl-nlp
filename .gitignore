@@ -130,3 +130,6 @@ dmypy.json
 
 # PyTorch config
 .data
+
+# PyTorch Lightning config
+lightning_logs
