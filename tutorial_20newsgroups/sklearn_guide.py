@@ -1,61 +1,55 @@
 """ref: https://scikit-learn.org/stable/tutorial/text_analytics/working_with_text_data.html"""
 
 import argparse
+import pickle
+from pathlib import Path
 
 import numpy as np
-from sklearn.datasets import fetch_20newsgroups
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.linear_model import SGDClassifier
 from sklearn.naive_bayes import MultinomialNB
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("train_feature_path", type=Path)
+    parser.add_argument("test_feature_path", type=Path)
+    parser.add_argument("output_root_path", type=Path)
     parser.add_argument(
-        "classifier", choices=("MultinomialNB", "SGDClassifier")
+        "--classifier",
+        "-c",
+        choices=("MultinomialNB", "SGDClassifier"),
+        nargs="+",
+        required=True,
     )
     args = parser.parse_args()
 
-    if args.classifier == "MultinomialNB":
-        clf = MultinomialNB()
-    elif args.classifier == "SGDClassifier":
-        clf = SGDClassifier(
-            loss="hinge",
-            penalty="l2",
-            alpha=1e-3,
-            random_state=42,
-            max_iter=5,
-            tol=None,
+    args.output_root_path.mkdir(parents=True, exist_ok=True)
+
+    classifiers = []
+    if "MultinomialNB" in args.classifier:
+        classifiers.append(MultinomialNB())
+    if "SGDClassifier" in args.classifier:
+        classifiers.append(
+            SGDClassifier(
+                loss="hinge",
+                penalty="l2",
+                alpha=1e-3,
+                random_state=42,
+                max_iter=5,
+                tol=None,
+            )
         )
 
-    categories = [
-        "alt.atheism",
-        "soc.religion.christian",
-        "comp.graphics",
-        "sci.med",
-    ]
-    twenty_train = fetch_20newsgroups(
-        subset="train", categories=categories, shuffle=True, random_state=42
-    )
-    print(f"twenty_train: {len(twenty_train.data)}")
+    train = np.load(args.train_feature_path)
+    test = np.load(args.test_feature_path)
 
-    count_vect = CountVectorizer()
-    X_train_counts = count_vect.fit_transform(twenty_train.data)
-    print(f"X_train_counts: {X_train_counts.shape}")
+    for name, clf in zip(args.classifier, classifiers):
+        print(f"train {name}")
+        clf.fit(train["X"], train["y"])
 
-    tfidf_transformer = TfidfTransformer()
-    X_train_tfidf = tfidf_transformer.fit_transform(X_train_counts)
-    print(f"X_train_tfidf: {X_train_tfidf.shape}")
+        train_predicted = clf.predict(train["X"])
+        print(np.mean(train_predicted == train["y"]))
+        test_predicted = clf.predict(test["X"])
+        print(np.mean(test_predicted == test["y"]))
 
-    clf.fit(X_train_tfidf, twenty_train.target)
-    print(np.mean(clf.predict(X_train_tfidf) == twenty_train.target))
-
-    twenty_test = fetch_20newsgroups(
-        subset="test", categories=categories, shuffle=True, random_state=42
-    )
-    print(f"twenty_test: {len(twenty_test.data)}")
-    X_test_counts = count_vect.transform(twenty_test.data)
-    print(f"X_test_counts: {X_test_counts.shape}")
-    X_test_tfidf = tfidf_transformer.transform(X_test_counts)
-    print(f"X_test_tfidf: {X_test_tfidf.shape}")
-    predicted = clf.predict(X_test_tfidf)
-    print(np.mean(predicted == twenty_test.target))
+        with open(args.output_root_path / f"{name}.pkl", "wb") as fb:
+            pickle.dump(clf, fb)
