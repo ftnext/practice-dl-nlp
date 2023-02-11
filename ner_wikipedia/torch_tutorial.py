@@ -33,22 +33,21 @@ class LSTMTagger(pl.LightningModule):
         self.loss_function = nn.NLLLoss()
 
     def forward(self, sentence: "torch.Tensor") -> "torch.Tensor":
-        # Linear layer が batch_size=1 を要求している
-
         # LightningDataModuleにする前 sentence.size は 4や5
-        # LightningDataModuleにした後 sentence.size は [1, 5] （paddingもした）
+        # LightningDataModuleにした後 sentence.size は [batch_size, 5] （paddingもした）
+        batch_size, sequence_length = sentence.size()
         embeds = self.word_embeddings(
-            sentence.view(-1)
-        )  # embeds.size() は [5, 6]
+            sentence
+        )  # embeds.size() は [batch_size, sequence_length, 6]
         lstm_out, _ = self.lstm(
-            embeds.view(sentence.size(1), sentence.size(0), -1)
-        )  # lstm_out.size() は [5, 1, 6]
+            embeds.view(sequence_length, batch_size, -1)
+        )  # lstm_out.size() は [sequence_length, batch_size, 6]
         tag_space = self.hidden2tag(
-            lstm_out.view(sentence.size(1), -1)
-        )  # tag_space.size() は [5, 4]
+            lstm_out
+        )  # tag_space.size() は [sequence_length, batch_size, 4]
         tag_scores = F.log_softmax(
             tag_space, dim=1
-        )  # tag_scores.size() は [5, 4]
+        )  # tag_scores.size() は [sequence_length, batch_size, 4]
         return tag_scores
 
     def configure_optimizers(self):
@@ -56,10 +55,18 @@ class LSTMTagger(pl.LightningModule):
         return optimizer
 
     def training_step(self, train_batch, batch_ids):
-        # DataLoaderのbatch_sizeが1（デフォルトのため）batch_idsはint (0, 1)
-        sentence_in, targets = train_batch  # sizeはどちらも [1, 5]
-        tag_scores = self(sentence_in)  # tag_scores.size() は [5, 4]
-        loss = self.loss_function(tag_scores, targets.view(-1))
+        # batch_idsはint。 DataLoaderのbatch_sizeが1（デフォルト値）のときは 0, 1
+        # sentence_in, targetsともsizeは [batch_size, sequence_length]
+        sentence_in, targets = train_batch
+        tag_scores = self(
+            sentence_in
+        )  # tag_scores.size() は [sequence_length, batch_size, 4]
+        loss = self.loss_function(
+            # [sequence_length, 4(class count), batch_size]
+            tag_scores.view(-1, tag_scores.size(2), tag_scores.size(1)),
+            # [sequence_length, batch_size]
+            targets.T,
+        )
         return {"loss": loss}
 
     def training_epoch_end(self, training_step_outputs):
@@ -125,7 +132,6 @@ class PosTaggingExampleDataModule(pl.LightningDataModule):
         self.example_train = SentenceTagsPairDataset()
 
     def train_dataloader(self):
-        # paddingしたので batch_size=2 が指定できるが、モデルのアーキテクチャが非対応
         return DataLoader(self.example_train, batch_size=self.batch_size)
 
 
@@ -133,6 +139,8 @@ def check_with_sample(sentence: list[str]) -> None:
     inputs = prepare_sequence(sentence, word_to_ix)
     # inputs を PosTaggingExampleDataModule が返す形に変換
     tag_scores = model(inputs.view(-1, len(inputs)))
+    # batch_sizeを渡せるようにした後、一文の表示が壊れないようにするためにsizeを変えている
+    tag_scores = tag_scores.view(len(inputs), -1)
     print(tag_scores)
     max_args = torch.argmax(tag_scores, dim=1)
     print("Sentence:", " ".join(sentence))
