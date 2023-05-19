@@ -2,7 +2,10 @@ import argparse
 import time
 
 import torch
+from colorama import Fore, init
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+init(autoreset=True)
 
 
 def main(model, tokenizer):
@@ -15,7 +18,9 @@ def main(model, tokenizer):
             break
 
         output = generate(model, tokenizer, input_text)
-        print(output)
+        print(
+            f"{Fore.YELLOW}{input_text}{Fore.WHITE}{output[len(input_text):]}"
+        )
 
 
 def generate(model, tokenizer, input_text):
@@ -28,7 +33,7 @@ def generate(model, tokenizer, input_text):
             max_new_tokens=64,
             do_sample=True,
             temperature=0.7,
-            pad_token_id=tokenizer.pad_token_id
+            pad_token_id=tokenizer.pad_token_id,
         )
         print(time.time() - start)
     print("----- generate end -----")
