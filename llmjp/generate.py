@@ -14,21 +14,26 @@ def main(model, tokenizer):
         if input_text.lower() == "q":
             break
 
-        inputs = tokenizer(input_text, return_tensors="pt").to(model.device)
-        print("----- generate start -----")
-        with torch.no_grad():
-            start = time.time()
-            tokens = model.generate(
-                **inputs,
-                max_new_tokens=64,
-                do_sample=True,
-                temperature=0.7,
-                pad_token_id=tokenizer.pad_token_id
-            )
-            print(time.time() - start)
-        print("----- generate end -----")
-        output = tokenizer.decode(tokens[0], skip_special_tokens=True)
+        output = generate(model, tokenizer, input_text)
         print(output)
+
+
+def generate(model, tokenizer, input_text):
+    inputs = tokenizer(input_text, return_tensors="pt").to(model.device)
+    print("----- generate start -----")
+    with torch.no_grad():
+        start = time.time()
+        tokens = model.generate(
+            **inputs,
+            max_new_tokens=64,
+            do_sample=True,
+            temperature=0.7,
+            pad_token_id=tokenizer.pad_token_id
+        )
+        print(time.time() - start)
+    print("----- generate end -----")
+    output = tokenizer.decode(tokens[0], skip_special_tokens=True)
+    return output
 
 
 if __name__ == "__main__":
