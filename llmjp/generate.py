@@ -1,4 +1,5 @@
 import argparse
+import logging
 import time
 
 import torch
@@ -24,8 +25,9 @@ def main(model, tokenizer):
 
 
 def generate(model, tokenizer, input_text):
+    logger = logging.getLogger(__name__)
     inputs = tokenizer(input_text, return_tensors="pt").to(model.device)
-    print("----- generate start -----")
+    logger.debug("generate start")
     with torch.no_grad():
         start = time.time()
         tokens = model.generate(
@@ -35,8 +37,8 @@ def generate(model, tokenizer, input_text):
             temperature=0.7,
             pad_token_id=tokenizer.pad_token_id,
         )
-        print(time.time() - start)
-    print("----- generate end -----")
+        logger.debug(time.time() - start)
+    logger.debug("generate end")
     output = tokenizer.decode(tokens[0], skip_special_tokens=True)
     return output
 
@@ -44,7 +46,15 @@ def generate(model, tokenizer, input_text):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name_or_path")
+    parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
+
+    if args.verbose:
+        log_format = (
+            "%(asctime)s | %(levelname)s | %(name)s:%(funcName)s:%(lineno)d"
+            " - %(message)s"
+        )
+        logging.basicConfig(level=logging.DEBUG, format=log_format)
 
     model = AutoModelForCausalLM.from_pretrained(
         args.model_name_or_path, device_map="auto", torch_dtype=torch.float32
