@@ -2,3 +2,4 @@ accelerate
 colorama
 torch
 transformers
+yaspin
