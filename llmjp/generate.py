@@ -44,6 +44,24 @@ def generate(model, tokenizer, input_text):
     return output
 
 
+def setup_root_logger():
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+
+    handler = logging.StreamHandler()
+    log_format = (
+        "%(asctime)s | %(levelname)s | %(name)s:%(funcName)s:%(lineno)d"
+        " - %(message)s"
+    )
+    formatter = logging.Formatter(log_format)
+    handler.setFormatter(formatter)
+
+    module_log_pass_filter = logging.Filter(__name__)
+    handler.addFilter(module_log_pass_filter)
+
+    root_logger.addHandler(handler)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("model_name_or_path")
@@ -51,11 +69,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.verbose:
-        log_format = (
-            "%(asctime)s | %(levelname)s | %(name)s:%(funcName)s:%(lineno)d"
-            " - %(message)s"
-        )
-        logging.basicConfig(level=logging.DEBUG, format=log_format)
+        setup_root_logger()
 
     model = AutoModelForCausalLM.from_pretrained(
         args.model_name_or_path, device_map="auto", torch_dtype=torch.float32
