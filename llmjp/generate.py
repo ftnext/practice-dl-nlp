@@ -8,6 +8,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 init(autoreset=True)
 
+logger = logging.getLogger(__name__)
+
 
 def main(model, tokenizer):
     while True:
@@ -25,7 +27,6 @@ def main(model, tokenizer):
 
 
 def generate(model, tokenizer, input_text):
-    logger = logging.getLogger(__name__)
     inputs = tokenizer(input_text, return_tensors="pt").to(model.device)
     logger.debug("generate start")
     with torch.no_grad():
