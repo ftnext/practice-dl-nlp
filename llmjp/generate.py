@@ -5,6 +5,7 @@ import time
 import torch
 from colorama import Fore, init
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from yaspin import yaspin
 
 init(autoreset=True)
 
@@ -26,11 +27,9 @@ def main(model, tokenizer):
         )
 
 
-def generate(model, tokenizer, input_text):
-    inputs = tokenizer(input_text, return_tensors="pt").to(model.device)
-    logger.debug("generate start")
+@yaspin(text="generating ...")
+def _generate_impl(model, inputs):
     with torch.no_grad():
-        start = time.time()
         tokens = model.generate(
             **inputs,
             max_new_tokens=64,
@@ -38,8 +37,16 @@ def generate(model, tokenizer, input_text):
             temperature=0.7,
             pad_token_id=tokenizer.pad_token_id,
         )
-        logger.debug(time.time() - start)
-    logger.debug("generate end")
+    return tokens
+
+
+def generate(model, tokenizer, input_text):
+    inputs = tokenizer(input_text, return_tensors="pt").to(model.device)
+
+    start = time.time()
+    tokens = _generate_impl(model, inputs)
+    logger.debug("took: %f (sec)", time.time() - start)
+
     output = tokenizer.decode(tokens[0], skip_special_tokens=True)
     return output
 
