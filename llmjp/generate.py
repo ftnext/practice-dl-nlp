@@ -27,8 +27,18 @@ def main(model, tokenizer):
         )
 
 
+def _stockmark_generate_impl(model, inputs):
+    with torch.no_grad():
+        tokens = model.generate(
+            **inputs, max_new_tokens=128, repetition_penalty=1.1
+        )
+    return tokens
+
+
 @yaspin(text="generating ...")
 def _generate_impl(model, inputs):
+    if model.name_or_path.startswith("stockmark"):
+        return _stockmark_generate_impl(model, inputs)
     with torch.no_grad():
         tokens = model.generate(
             **inputs,
